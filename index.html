@@ -971,15 +971,19 @@ Generate study materials. Respond ONLY with valid JSON, no markdown, no backtick
     {
       "portuguese": "key Portuguese phrase",
       "english": "English equivalent",
-      "example": "everyday English example sentence"
+      "example_pt": "natural example sentence in Portuguese using this phrase (under 15 words)",
+      "example_en": "English translation of the example sentence"
     }
   ],
   "quiz": [
     {
-      "question": "comprehension question",
-      "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+      "question_pt": "comprehension question in Portuguese",
+      "question_en": "same question in English",
+      "options_pt": ["A) ... (Portuguese)", "B) ...", "C) ...", "D) ..."],
+      "options_en": ["A) ... (English)", "B) ...", "C) ...", "D) ..."],
       "answer": "A",
-      "explanation": "why this answer is correct"
+      "explanation_pt": "brief explanation in Portuguese",
+      "explanation_en": "brief explanation in English"
     }
   ]
 }
@@ -1092,20 +1096,33 @@ function renderStudySection(d) {
     <div class="phrase-item">
       <div class="phrase-pt">${p.portuguese}</div>
       <div class="phrase-en">${p.english}</div>
-      <div class="phrase-example">${p.example}</div>
+      <div class="phrase-example">${p.example_pt || p.example || ''}</div>
+      <div class="phrase-example" style="color:var(--blue); font-style:normal; font-size:0.85rem; margin-top:3px; border-top: none; padding-top:0;">${p.example_en || ''}</div>
     </div>
   `).join('');
 
   quizAnswers = {};
   const quiz = document.getElementById('out-quiz');
   quiz.innerHTML = (d.quiz || []).map((q, i) => {
-    quizAnswers[i] = { answer: q.answer, explanation: q.explanation };
+    quizAnswers[i] = {
+      answer: q.answer,
+      explanation_pt: q.explanation_pt || q.explanation || '',
+      explanation_en: q.explanation_en || ''
+    };
+    const optsPt = q.options_pt || q.options || [];
+    const optsEn = q.options_en || [];
     return `
     <div class="quiz-item" id="quiz-${i}">
-      <div class="quiz-question">${q.question}</div>
+      <div class="quiz-question">
+        <div>${q.question_pt || q.question}</div>
+        <div style="font-size:0.85rem; color:var(--ink-muted); margin-top:4px; font-style:italic;">${q.question_en || ''}</div>
+      </div>
       <div class="quiz-options">
-        ${(q.options || []).map(opt => `
-          <button class="quiz-option" onclick="checkAnswer(${i}, '${opt.charAt(0)}')">${opt}</button>
+        ${optsPt.map((opt, oi) => `
+          <button class="quiz-option" onclick="checkAnswer(${i}, '${opt.charAt(0)}')">
+            <span style="display:block;">${opt}</span>
+            <span style="display:block; font-size:0.78rem; color:var(--ink-faint); margin-top:2px;">${optsEn[oi] || ''}</span>
+          </button>
         `).join('')}
       </div>
       <div class="quiz-answer" id="quiz-ans-${i}"></div>
@@ -1125,7 +1142,6 @@ function togglePara(i) {
 
 function checkAnswer(qIdx, selected) {
   const correct = quizAnswers[qIdx].answer;
-  const explanation = quizAnswers[qIdx].explanation;
   const item = document.getElementById(`quiz-${qIdx}`);
   const btns = item.querySelectorAll('.quiz-option');
   const ansEl = document.getElementById(`quiz-ans-${qIdx}`);
@@ -1136,7 +1152,11 @@ function checkAnswer(qIdx, selected) {
     else if (btn.textContent.trim().startsWith(selected) && selected !== correct) btn.classList.add('wrong');
   });
 
-  ansEl.textContent = explanation;
+  const qa = quizAnswers[qIdx];
+  ansEl.innerHTML = `
+    <span style="display:block;">${qa.explanation_pt}</span>
+    <span style="display:block; color:var(--blue); font-size:0.82rem; margin-top:3px;">${qa.explanation_en}</span>
+  `;
   ansEl.style.display = 'block';
 }
 
