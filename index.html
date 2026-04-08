@@ -257,7 +257,7 @@
 
   .article-headline {
     font-family: 'Playfair Display', serif;
-    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-size: clamp(1.9rem, 4.5vw, 2.8rem);
     font-weight: 600;
     line-height: 1.25;
     color: var(--ink);
@@ -266,7 +266,7 @@
 
   .article-deck {
     font-family: 'Source Serif 4', serif;
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     font-weight: 300;
     line-height: 1.65;
     color: var(--ink-muted);
@@ -365,9 +365,9 @@
   }
 
   .vocab-definition {
-    font-size: 0.88rem;
+    font-size: 0.95rem;
     color: var(--ink);
-    line-height: 1.5;
+    line-height: 1.55;
   }
 
   .vocab-example {
@@ -391,14 +391,14 @@
 
   .phrase-pt {
     font-family: 'Playfair Display', serif;
-    font-size: 1rem;
+    font-size: 1.08rem;
     font-style: italic;
     color: var(--green);
     margin-bottom: 0.3rem;
   }
 
   .phrase-en {
-    font-size: 0.88rem;
+    font-size: 0.95rem;
     color: var(--ink);
     margin-bottom: 0.4rem;
   }
@@ -428,8 +428,8 @@
   .quiz-question {
     padding: 1rem;
     font-family: 'Source Serif 4', serif;
-    font-size: 0.95rem;
-    line-height: 1.6;
+    font-size: 1rem;
+    line-height: 1.65;
     border-bottom: 1px solid var(--rule);
     background: var(--paper-warm);
     display: flex;
@@ -455,7 +455,7 @@
     padding: 8px 12px;
     border: 1px solid var(--rule);
     background: var(--paper);
-    font-size: 0.85rem;
+    font-size: 0.92rem;
     cursor: pointer;
     transition: all 0.15s;
     font-family: 'DM Sans', sans-serif;
@@ -535,7 +535,7 @@
   .para-pt {
     padding: 1.2rem 1.4rem;
     font-family: 'Source Serif 4', serif;
-    font-size: 1.08rem;
+    font-size: 1.15rem;
     line-height: 1.9;
     color: var(--ink);
     cursor: pointer;
@@ -580,7 +580,7 @@
   .para-en {
     padding: 1.2rem 1.4rem;
     font-family: 'Source Serif 4', serif;
-    font-size: 1.05rem;
+    font-size: 1.12rem;
     line-height: 1.9;
     color: #1a3a5c;
     border-top: 1px solid #c5d8ec;
@@ -646,14 +646,14 @@
 
   .vocab-chip-word {
     font-family: 'Playfair Display', serif;
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: var(--ink);
     display: block;
   }
 
   .vocab-chip-def {
-    font-size: 0.82rem;
+    font-size: 0.88rem;
     color: var(--ink-muted);
     display: none;
     margin-top: 4px;
@@ -697,8 +697,8 @@
     gap: 10px;
     align-items: flex-start;
     margin-bottom: 0.65rem;
-    font-size: 0.9rem;
-    line-height: 1.6;
+    font-size: 0.95rem;
+    line-height: 1.65;
   }
 
   .grammar-item:last-child { margin-bottom: 0; }
@@ -963,7 +963,8 @@ Generate study materials. Respond ONLY with valid JSON, no markdown, no backtick
       "portuguese": "word from original Portuguese",
       "pos": "noun/verb/adj/phrase",
       "english": "English meaning",
-      "example": "natural English example sentence"
+      "example_pt": "natural example sentence written in Portuguese using this word",
+      "example_en": "English translation of the example sentence"
     }
   ],
   "phrases": [
@@ -982,7 +983,7 @@ Generate study materials. Respond ONLY with valid JSON, no markdown, no backtick
     }
   ]
 }
-Requirements: 5-7 vocabulary items, 3-4 phrases, 4 quiz questions. JSON only.`;
+Requirements: max 6 vocabulary items, max 3 phrases, 4 quiz questions. Keep example sentences short (under 15 words). JSON only.`;
 
     const part2 = await callAPI(key, prompt2, 2500);
     renderStudySection(part2);
@@ -1080,7 +1081,8 @@ function renderStudySection(d) {
       </div>
       <div class="vocab-en">
         <div class="vocab-definition">${v.english}</div>
-        <div class="vocab-example">"${v.example}"</div>
+        <div class="vocab-example" style="font-style:italic; margin-top:5px;">"${v.example_pt || v.example || ''}"</div>
+        <div class="vocab-example" style="color:var(--blue); font-style:normal; margin-top:2px; font-size:0.8rem;">${v.example_en || ''}</div>
       </div>
     </div>
   `).join('');
