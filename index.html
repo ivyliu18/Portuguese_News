@@ -924,22 +924,25 @@ Respond ONLY with valid JSON, no markdown, no backticks:
   "deck": "2-sentence English teaser summarising the story",
   "paragraphs": [
     {
-      "pt": "Original Portuguese paragraph. Wrap important words with HTML spans: verbs use <span class=\"w-verb\">word</span>, conjunctions use <span class=\"w-conj\">word</span>, key nouns use <span class=\"w-noun\">word</span>, adjectives use <span class=\"w-adj\">word</span>. Only mark 2-4 words per paragraph.",
-      "en": "English translation. Also wrap the corresponding translated words with the same span classes so colours match across languages.",
+      "pt": "original Portuguese paragraph, plain text only",
+      "en": "English translation, plain text only",
+      "highlights": [
+        { "word": "exact word as it appears in pt text", "type": "verb|conjunction|noun|adjective" }
+      ],
       "vocab": [
         { "portuguese": "word", "pos": "noun/verb/adj", "english": "meaning" }
       ],
       "grammar": [
         {
-          "word": "the verb or conjunction as it appears in the Portuguese text",
+          "word": "verb or conjunction from the paragraph",
           "type": "verb OR conjunction OR other",
-          "note": "brief grammar explanation in English, e.g. 'anunciou — preterite of anunciar (to announce), 3rd person singular' or 'embora — concessive conjunction meaning although/even though'"
+          "note": "brief English explanation e.g. tense, mood, or conjunction meaning"
         }
       ]
     }
   ]
 }
-Keep paragraphs faithful to the original. Max 2 vocab items per paragraph. Max 2 grammar notes per paragraph (prioritise verbs with tense/mood info and key conjunctions). JSON only.`;
+Plain text in pt and en fields — no HTML. Use highlights array for word tagging (max 4 per paragraph). Max 2 vocab, max 2 grammar notes per paragraph. JSON only.`;
 
     const part1 = await callAPI(key, prompt1, 3500);
     renderArticle(part1);
@@ -1003,6 +1006,23 @@ function renderArticle(d) {
 
   const paragraphs = d.paragraphs || [];
   body.innerHTML = paragraphs.map((p, i) => {
+    function applyHighlights(text, highlights) {
+      let result = text;
+      (highlights || []).forEach(h => {
+        const cls = h.type === 'verb' ? 'w-verb'
+                  : h.type === 'conjunction' ? 'w-conj'
+                  : h.type === 'noun' ? 'w-noun'
+                  : h.type === 'adjective' ? 'w-adj' : 'w-noun';
+        const escaped = h.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp('(?<![\\w>])(' + escaped + ')(?![\\w<])', 'g');
+        result = result.replace(re, `<span class="${cls}">$1</span>`);
+      });
+      return result;
+    }
+
+    const ptText = applyHighlights(p.pt, p.highlights);
+    const enText = applyHighlights(p.en, p.highlights);
+
     const chips = (p.vocab || []).map((v, vi) => `
       <div class="vocab-chip" id="chip-${i}-${vi}" onclick="event.stopPropagation(); flipChip(${i},${vi})">
         <span class="vocab-chip-word">${v.portuguese}</span>
@@ -1029,11 +1049,11 @@ function renderArticle(d) {
     return `
     <div class="para-block" id="para-${i}" onclick="togglePara(${i})">
       <div class="para-pt">
-        <span class="para-pt-text">${p.pt}</span>
+        <span class="para-pt-text">${ptText}</span>
         <span class="para-toggle">EN ▾</span>
       </div>
       <div class="para-en-wrap">
-        <div class="para-en">${p.en}</div>
+        <div class="para-en">${enText}</div>
         ${vocabSection}${grammarSection}
       </div>
     </div>`;
