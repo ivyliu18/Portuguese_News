@@ -834,8 +834,8 @@ Respond ONLY with a valid JSON object (no markdown, no backticks) with this exac
 }
 
 Requirements:
-- Each paragraph should have 2-4 vocab items highlighting the most useful or advanced words from that paragraph
-- vocabulary: collect ALL vocab items from all paragraphs here too, for the consolidated review section at the bottom (6-10 total)
+- Each paragraph: maximum 2 vocab items, only the most important words
+- vocabulary: collect all unique vocab items from paragraphs (no duplicates), max 8 total
 - phrases: 3-5 key structural phrases or expressions
 - quiz: 4 questions testing comprehension of the English article
 - All output must be valid JSON only`;
@@ -851,7 +851,7 @@ Requirements:
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 3000,
+        max_tokens: 4500,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -863,7 +863,17 @@ Requirements:
 
     const data = await res.json();
     const raw = data.content[0].text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(raw);
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch(jsonErr) {
+      const tryFix = raw.endsWith('}') ? raw : raw + '"}]}]}';
+      try {
+        parsed = JSON.parse(tryFix);
+      } catch(e) {
+        throw new Error('The article may be too long. Please try a shorter news article (under 500 words).');
+      }
+    }
 
     renderMagazine(parsed);
 
