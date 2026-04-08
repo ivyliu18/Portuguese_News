@@ -521,10 +521,11 @@
 
   .para-block {
     border: 1px solid var(--rule);
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
     background: var(--paper-card);
     overflow: hidden;
     transition: border-color 0.2s;
+    border-radius: 2px;
   }
 
   .para-block:hover {
@@ -532,17 +533,17 @@
   }
 
   .para-pt {
-    padding: 1rem 1.2rem;
+    padding: 1.2rem 1.4rem;
     font-family: 'Source Serif 4', serif;
-    font-size: 1rem;
-    line-height: 1.8;
+    font-size: 1.08rem;
+    line-height: 1.9;
     color: var(--ink);
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
-    background: var(--paper-warm);
+    background: #f0e9dc;
     user-select: none;
   }
 
@@ -557,7 +558,7 @@
     text-transform: uppercase;
     color: var(--ink-faint);
     white-space: nowrap;
-    padding-top: 3px;
+    padding-top: 4px;
     transition: color 0.2s;
     flex-shrink: 0;
   }
@@ -566,23 +567,24 @@
     color: var(--accent);
   }
 
-  .para-en {
+  .para-en-wrap {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.35s ease, padding 0.2s ease;
-    padding: 0 1.2rem;
-    font-family: 'Source Serif 4', serif;
-    font-size: 0.97rem;
-    line-height: 1.8;
-    color: var(--blue);
-    border-top: 0px solid var(--rule);
-    background: var(--blue-light);
+    transition: max-height 0.4s ease;
   }
 
-  .para-block.open .para-en {
-    max-height: 300px;
-    padding: 1rem 1.2rem;
-    border-top: 1px solid var(--rule);
+  .para-block.open .para-en-wrap {
+    max-height: 1200px;
+  }
+
+  .para-en {
+    padding: 1.2rem 1.4rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 1.05rem;
+    line-height: 1.9;
+    color: #1a3a5c;
+    border-top: 1px solid #c5d8ec;
+    background: #e8f2fb;
   }
 
   .para-hint {
@@ -591,6 +593,31 @@
     font-style: italic;
     margin-bottom: 0.8rem;
     text-align: center;
+  }
+
+  /* WORD HIGHLIGHTING */
+  .w-verb {
+    color: #b03a0a;
+    font-weight: 500;
+    border-bottom: 1.5px solid #e8976a;
+  }
+
+  .w-conj {
+    color: #1a5fa8;
+    font-weight: 500;
+    border-bottom: 1.5px solid #7aaedd;
+  }
+
+  .w-noun {
+    color: #2d6a4f;
+    font-weight: 500;
+    border-bottom: 1.5px dotted #6abf95;
+  }
+
+  .w-adj {
+    color: #6b3fa0;
+    font-weight: 500;
+    border-bottom: 1.5px dotted #b89ed4;
   }
 
 
@@ -619,18 +646,18 @@
 
   .vocab-chip-word {
     font-family: 'Playfair Display', serif;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--ink);
     display: block;
   }
 
   .vocab-chip-def {
-    font-size: 0.75rem;
+    font-size: 0.82rem;
     color: var(--ink-muted);
     display: none;
-    margin-top: 3px;
-    line-height: 1.4;
+    margin-top: 4px;
+    line-height: 1.5;
   }
 
   .vocab-chip.flipped .vocab-chip-word {
@@ -646,6 +673,72 @@
     color: var(--ink-faint);
     font-style: italic;
     margin-right: 4px;
+  }
+
+
+  /* GRAMMAR NOTES */
+  .para-grammar {
+    padding: 1rem 1.4rem 1.1rem;
+    border-top: 1px dashed #e0c98a;
+    background: #fdf3d8;
+  }
+
+  .grammar-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #a07830;
+    margin-bottom: 0.7rem;
+  }
+
+  .grammar-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 0.65rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .grammar-item:last-child { margin-bottom: 0; }
+
+  .grammar-tag {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .grammar-tag.verb {
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+
+  .grammar-tag.conj {
+    background: var(--blue-light);
+    color: var(--blue);
+  }
+
+  .grammar-tag.other {
+    background: var(--green-light);
+    color: var(--green);
+  }
+
+  .grammar-note {
+    color: var(--ink);
+  }
+
+  .grammar-note strong {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--ink);
   }
 
   @media (max-width: 600px) {
@@ -831,15 +924,22 @@ Respond ONLY with valid JSON, no markdown, no backticks:
   "deck": "2-sentence English teaser summarising the story",
   "paragraphs": [
     {
-      "pt": "original Portuguese paragraph text",
-      "en": "English translation, natural and clear",
+      "pt": "Original Portuguese paragraph. Wrap important words with HTML spans: verbs use <span class=\"w-verb\">word</span>, conjunctions use <span class=\"w-conj\">word</span>, key nouns use <span class=\"w-noun\">word</span>, adjectives use <span class=\"w-adj\">word</span>. Only mark 2-4 words per paragraph.",
+      "en": "English translation. Also wrap the corresponding translated words with the same span classes so colours match across languages.",
       "vocab": [
         { "portuguese": "word", "pos": "noun/verb/adj", "english": "meaning" }
+      ],
+      "grammar": [
+        {
+          "word": "the verb or conjunction as it appears in the Portuguese text",
+          "type": "verb OR conjunction OR other",
+          "note": "brief grammar explanation in English, e.g. 'anunciou — preterite of anunciar (to announce), 3rd person singular' or 'embora — concessive conjunction meaning although/even though'"
+        }
       ]
     }
   ]
 }
-Keep paragraphs faithful to the original. Max 2 vocab items per paragraph. JSON only.`;
+Keep paragraphs faithful to the original. Max 2 vocab items per paragraph. Max 2 grammar notes per paragraph (prioritise verbs with tense/mood info and key conjunctions). JSON only.`;
 
     const part1 = await callAPI(key, prompt1, 3500);
     renderArticle(part1);
@@ -910,13 +1010,32 @@ function renderArticle(d) {
       </div>
     `).join('');
     const vocabSection = chips ? `<div class="para-vocab">${chips}</div>` : '';
+
+    const grammarItems = (p.grammar || []).map(g => {
+      const tagClass = g.type === 'verb' ? 'verb' : g.type === 'conjunction' ? 'conj' : 'other';
+      const tagLabel = g.type === 'verb' ? 'Verb' : g.type === 'conjunction' ? 'Conj' : 'Grammar';
+      return `
+        <div class="grammar-item">
+          <span class="grammar-tag ${tagClass}">${tagLabel}</span>
+          <span class="grammar-note"><strong>${g.word}</strong> — ${g.note}</span>
+        </div>`;
+    }).join('');
+    const grammarSection = grammarItems ? `
+      <div class="para-grammar">
+        <div class="grammar-label">Grammar Notes</div>
+        ${grammarItems}
+      </div>` : '';
+
     return `
     <div class="para-block" id="para-${i}" onclick="togglePara(${i})">
       <div class="para-pt">
         <span class="para-pt-text">${p.pt}</span>
         <span class="para-toggle">EN ▾</span>
       </div>
-      <div class="para-en">${p.en}${vocabSection}</div>
+      <div class="para-en-wrap">
+        <div class="para-en">${p.en}</div>
+        ${vocabSection}${grammarSection}
+      </div>
     </div>`;
   }).join('');
 
