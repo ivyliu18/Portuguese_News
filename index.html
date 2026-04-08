@@ -513,6 +513,141 @@
     margin-top: 1rem;
   }
 
+
+  /* PARAGRAPH BLOCKS */
+  .para-blocks {
+    margin-bottom: 2.5rem;
+  }
+
+  .para-block {
+    border: 1px solid var(--rule);
+    margin-bottom: 0.75rem;
+    background: var(--paper-card);
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .para-block:hover {
+    border-color: var(--ink-faint);
+  }
+
+  .para-pt {
+    padding: 1rem 1.2rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 1rem;
+    line-height: 1.8;
+    color: var(--ink);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    background: var(--paper-warm);
+    user-select: none;
+  }
+
+  .para-pt-text {
+    flex: 1;
+  }
+
+  .para-toggle {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    white-space: nowrap;
+    padding-top: 3px;
+    transition: color 0.2s;
+    flex-shrink: 0;
+  }
+
+  .para-block.open .para-toggle {
+    color: var(--accent);
+  }
+
+  .para-en {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, padding 0.2s ease;
+    padding: 0 1.2rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.97rem;
+    line-height: 1.8;
+    color: var(--blue);
+    border-top: 0px solid var(--rule);
+    background: var(--blue-light);
+  }
+
+  .para-block.open .para-en {
+    max-height: 300px;
+    padding: 1rem 1.2rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  .para-hint {
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-style: italic;
+    margin-bottom: 0.8rem;
+    text-align: center;
+  }
+
+
+  /* INLINE VOCAB CHIPS */
+  .para-vocab {
+    padding: 0.8rem 1.2rem 1rem;
+    border-top: 1px dashed var(--rule);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .vocab-chip {
+    background: var(--paper-card);
+    border: 1px solid var(--rule);
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .vocab-chip:hover {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  .vocab-chip-word {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ink);
+    display: block;
+  }
+
+  .vocab-chip-def {
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    display: none;
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+
+  .vocab-chip.flipped .vocab-chip-word {
+    color: var(--accent);
+  }
+
+  .vocab-chip.flipped .vocab-chip-def {
+    display: block;
+  }
+
+  .vocab-chip-pos {
+    font-size: 10px;
+    color: var(--ink-faint);
+    font-style: italic;
+    margin-right: 4px;
+  }
+
   @media (max-width: 600px) {
     .quiz-options { grid-template-columns: 1fr; }
     .vocab-item { grid-template-columns: 1fr; }
@@ -570,7 +705,8 @@
       <div class="article-meta" id="out-meta">Adapted for English Study · Original source: Portuguese</div>
     </div>
 
-    <div class="article-body" id="out-body"></div>
+    <p class="para-hint" id="para-hint" style="display:none">Tap each paragraph to reveal the English translation</p>
+    <div class="para-blocks" id="out-body"></div>
 
     <div class="section-divider"><span>Vocabulary</span></div>
     <div class="vocab-grid" id="out-vocab"></div>
@@ -659,7 +795,19 @@ Respond ONLY with a valid JSON object (no markdown, no backticks) with this exac
   "kicker": "short category label (e.g. Politics, Culture, Economy)",
   "headline": "engaging English headline for the article",
   "deck": "2-sentence summary/teaser in polished English (the deck copy under the headline)",
-  "body": "The full article rewritten in clear, natural English. 3-5 paragraphs. Aimed at upper-intermediate learners. Use varied vocabulary. Keep the original facts and meaning.",
+  "paragraphs": [
+    {
+      "pt": "Original Portuguese paragraph (copy exactly from source)",
+      "en": "English translation of this paragraph, natural and clear",
+      "vocab": [
+        {
+          "portuguese": "important word from this paragraph",
+          "pos": "noun/verb/adj/phrase",
+          "english": "concise English meaning"
+        }
+      ]
+    }
+  ],
   "vocabulary": [
     {
       "portuguese": "word or phrase from original",
@@ -686,7 +834,8 @@ Respond ONLY with a valid JSON object (no markdown, no backticks) with this exac
 }
 
 Requirements:
-- vocabulary: 6-8 interesting or advanced words from the original Portuguese
+- Each paragraph should have 2-4 vocab items highlighting the most useful or advanced words from that paragraph
+- vocabulary: collect ALL vocab items from all paragraphs here too, for the consolidated review section at the bottom (6-10 total)
 - phrases: 3-5 key structural phrases or expressions
 - quiz: 4 questions testing comprehension of the English article
 - All output must be valid JSON only`;
@@ -732,7 +881,31 @@ function renderMagazine(d) {
   document.getElementById('out-deck').textContent = d.deck || '';
 
   const body = document.getElementById('out-body');
-  body.innerHTML = d.body.split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('');
+  const hint = document.getElementById('para-hint');
+  hint.style.display = 'block';
+
+  const paragraphs = d.paragraphs || [];
+  if (paragraphs.length > 0) {
+    body.innerHTML = paragraphs.map((p, i) => {
+      const chips = (p.vocab || []).map((v, vi) => `
+        <div class="vocab-chip" id="chip-${i}-${vi}" onclick="event.stopPropagation(); flipChip(${i},${vi})">
+          <span class="vocab-chip-word">${v.portuguese}</span>
+          <span class="vocab-chip-def"><span class="vocab-chip-pos">${v.pos}</span>${v.english}</span>
+        </div>
+      `).join('');
+      const vocabSection = chips ? `<div class="para-vocab">${chips}</div>` : '';
+      return `
+      <div class="para-block" id="para-${i}" onclick="togglePara(${i})">
+        <div class="para-pt">
+          <span class="para-pt-text">${p.pt}</span>
+          <span class="para-toggle">EN ▾</span>
+        </div>
+        <div class="para-en">${p.en}${vocabSection}</div>
+      </div>`;
+    }).join('');
+  } else if (d.body) {
+    body.innerHTML = d.body.split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('');
+  }
 
   const vocab = document.getElementById('out-vocab');
   vocab.innerHTML = (d.vocabulary || []).map(v => `
@@ -776,6 +949,16 @@ function renderMagazine(d) {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('magazine').style.display = 'block';
   document.getElementById('magazine').scrollIntoView({ behavior: 'smooth' });
+}
+
+function flipChip(i, vi) {
+  const chip = document.getElementById('chip-' + i + '-' + vi);
+  chip.classList.toggle('flipped');
+}
+
+function togglePara(i) {
+  const block = document.getElementById('para-' + i);
+  block.classList.toggle('open');
 }
 
 function checkAnswer(qIdx, selected) {
