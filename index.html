@@ -692,8 +692,8 @@
   </div>
 
   <div class="loading" id="loading">
-    <p style="font-size:1.1rem;">Setting the press<span class="loading-dots"></span></p>
-    <p style="font-size:0.85rem; margin-top:0.5rem; color: var(--ink-faint);">Transforming your article into a study magazine</p>
+    <p style="font-size:1.1rem;" id="loading-msg">Setting the press<span class="loading-dots"></span></p>
+    <p style="font-size:0.85rem; margin-top:0.5rem; color: var(--ink-faint);" id="loading-sub">Transforming your article into a study magazine</p>
   </div>
 
   <div class="magazine" id="magazine">
@@ -768,11 +768,39 @@ document.getElementById('today-date').textContent = today.toLocaleDateString('en
 
 let quizAnswers = {};
 
+async function callAPI(key, prompt, maxTokens) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || 'API error ' + res.status);
+  }
+  const data = await res.json();
+  const raw = data.content[0].text.replace(/```json|```/g, '').trim();
+  return JSON.parse(raw);
+}
+
+function setLoading(msg, sub) {
+  document.getElementById('loading-msg').textContent = msg;
+  document.getElementById('loading-sub').textContent = sub;
+}
+
 async function generate() {
   const key = document.getElementById('api-key').value.trim();
   const news = document.getElementById('news-input').value.trim();
   const errEl = document.getElementById('error-msg');
-
   errEl.style.display = 'none';
 
   if (!key) { showError('Please enter your Anthropic API key.'); return; }
@@ -782,100 +810,79 @@ async function generate() {
   document.getElementById('loading').style.display = 'block';
   document.getElementById('magazine').style.display = 'none';
 
-  const prompt = `You are an editor for a premium English language learning magazine inspired by Studio Classroom (空中英語教室). 
+  try {
+    // CALL 1: article structure + paragraph translations + inline vocab
+    setLoading('Typesetting the article...', 'Translating paragraphs and picking vocabulary');
 
-A learner has pasted a Portuguese news article. Transform it into a structured English study magazine edition.
+    const prompt1 = `You are an editor for a premium English language learning magazine.
+
+A learner pasted a Portuguese news article. Your job:
+1. Write a headline, kicker, and deck in English
+2. Split the article into paragraphs, provide the original Portuguese + English translation
+3. Pick 1-2 key vocabulary words per paragraph
 
 PORTUGUESE ARTICLE:
 ${news}
 
-Respond ONLY with a valid JSON object (no markdown, no backticks) with this exact structure:
-
+Respond ONLY with valid JSON, no markdown, no backticks:
 {
-  "kicker": "short category label (e.g. Politics, Culture, Economy)",
-  "headline": "engaging English headline for the article",
-  "deck": "2-sentence summary/teaser in polished English (the deck copy under the headline)",
+  "kicker": "short topic label e.g. Politics / Economy / Culture",
+  "headline": "engaging English headline",
+  "deck": "2-sentence English teaser summarising the story",
   "paragraphs": [
     {
-      "pt": "Original Portuguese paragraph (copy exactly from source)",
-      "en": "English translation of this paragraph, natural and clear",
+      "pt": "original Portuguese paragraph text",
+      "en": "English translation, natural and clear",
       "vocab": [
-        {
-          "portuguese": "important word from this paragraph",
-          "pos": "noun/verb/adj/phrase",
-          "english": "concise English meaning"
-        }
+        { "portuguese": "word", "pos": "noun/verb/adj", "english": "meaning" }
       ]
     }
-  ],
+  ]
+}
+Keep paragraphs faithful to the original. Max 2 vocab items per paragraph. JSON only.`;
+
+    const part1 = await callAPI(key, prompt1, 3500);
+    renderArticle(part1);
+
+    // CALL 2: phrases + quiz
+    setLoading('Setting the study section...', 'Generating key phrases and quiz questions');
+
+    const articleText = (part1.paragraphs || []).map(p => p.en).join(' ');
+    const prompt2 = `You are an English language learning editor.
+
+Here is an English article adapted from Portuguese news:
+${articleText}
+
+Generate study materials. Respond ONLY with valid JSON, no markdown, no backticks:
+{
   "vocabulary": [
     {
-      "portuguese": "word or phrase from original",
-      "pos": "noun / verb / adjective / phrase",
+      "portuguese": "word from original Portuguese",
+      "pos": "noun/verb/adj/phrase",
       "english": "English meaning",
-      "example": "A natural English example sentence using the concept"
+      "example": "natural English example sentence"
     }
   ],
   "phrases": [
     {
-      "portuguese": "key phrase from original text",
-      "english": "English equivalent or translation",
-      "example": "A natural, everyday English example sentence showing the phrase in use"
+      "portuguese": "key Portuguese phrase",
+      "english": "English equivalent",
+      "example": "everyday English example sentence"
     }
   ],
   "quiz": [
     {
-      "question": "comprehension question about the article",
+      "question": "comprehension question",
       "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
       "answer": "A",
-      "explanation": "brief explanation of why this is correct"
+      "explanation": "why this answer is correct"
     }
   ]
 }
+Requirements: 5-7 vocabulary items, 3-4 phrases, 4 quiz questions. JSON only.`;
 
-Requirements:
-- Each paragraph: maximum 2 vocab items, only the most important words
-- vocabulary: collect all unique vocab items from paragraphs (no duplicates), max 8 total
-- phrases: 3-5 key structural phrases or expressions
-- quiz: 4 questions testing comprehension of the English article
-- All output must be valid JSON only`;
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 4500,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error?.message || `API error ${res.status}`);
-    }
-
-    const data = await res.json();
-    const raw = data.content[0].text.replace(/```json|```/g, '').trim();
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch(jsonErr) {
-      const tryFix = raw.endsWith('}') ? raw : raw + '"}]}]}';
-      try {
-        parsed = JSON.parse(tryFix);
-      } catch(e) {
-        throw new Error('The article may be too long. Please try a shorter news article (under 500 words).');
-      }
-    }
-
-    renderMagazine(parsed);
+    const part2 = await callAPI(key, prompt2, 2500);
+    renderStudySection(part2);
 
   } catch (e) {
     showError('Error: ' + e.message);
@@ -885,7 +892,7 @@ Requirements:
   }
 }
 
-function renderMagazine(d) {
+function renderArticle(d) {
   document.getElementById('out-kicker').textContent = d.kicker || 'News';
   document.getElementById('out-headline').textContent = d.headline || '';
   document.getElementById('out-deck').textContent = d.deck || '';
@@ -895,28 +902,36 @@ function renderMagazine(d) {
   hint.style.display = 'block';
 
   const paragraphs = d.paragraphs || [];
-  if (paragraphs.length > 0) {
-    body.innerHTML = paragraphs.map((p, i) => {
-      const chips = (p.vocab || []).map((v, vi) => `
-        <div class="vocab-chip" id="chip-${i}-${vi}" onclick="event.stopPropagation(); flipChip(${i},${vi})">
-          <span class="vocab-chip-word">${v.portuguese}</span>
-          <span class="vocab-chip-def"><span class="vocab-chip-pos">${v.pos}</span>${v.english}</span>
-        </div>
-      `).join('');
-      const vocabSection = chips ? `<div class="para-vocab">${chips}</div>` : '';
-      return `
-      <div class="para-block" id="para-${i}" onclick="togglePara(${i})">
-        <div class="para-pt">
-          <span class="para-pt-text">${p.pt}</span>
-          <span class="para-toggle">EN ▾</span>
-        </div>
-        <div class="para-en">${p.en}${vocabSection}</div>
-      </div>`;
-    }).join('');
-  } else if (d.body) {
-    body.innerHTML = d.body.split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('');
-  }
+  body.innerHTML = paragraphs.map((p, i) => {
+    const chips = (p.vocab || []).map((v, vi) => `
+      <div class="vocab-chip" id="chip-${i}-${vi}" onclick="event.stopPropagation(); flipChip(${i},${vi})">
+        <span class="vocab-chip-word">${v.portuguese}</span>
+        <span class="vocab-chip-def"><span class="vocab-chip-pos">${v.pos} · </span>${v.english}</span>
+      </div>
+    `).join('');
+    const vocabSection = chips ? `<div class="para-vocab">${chips}</div>` : '';
+    return `
+    <div class="para-block" id="para-${i}" onclick="togglePara(${i})">
+      <div class="para-pt">
+        <span class="para-pt-text">${p.pt}</span>
+        <span class="para-toggle">EN ▾</span>
+      </div>
+      <div class="para-en">${p.en}${vocabSection}</div>
+    </div>`;
+  }).join('');
 
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('magazine').style.display = 'block';
+  document.getElementById('magazine').scrollIntoView({ behavior: 'smooth' });
+
+  // Show placeholders for study section
+  document.getElementById('out-vocab').innerHTML = '<div style="padding:1rem; color:var(--ink-faint); font-style:italic; font-size:0.9rem;">Loading vocabulary<span class="loading-dots"></span></div>';
+  document.getElementById('out-phrases').innerHTML = '<div style="padding:1rem; color:var(--ink-faint); font-style:italic; font-size:0.9rem;">Loading phrases<span class="loading-dots"></span></div>';
+  document.getElementById('out-quiz').innerHTML = '<div style="padding:1rem; color:var(--ink-faint); font-style:italic; font-size:0.9rem;">Loading quiz<span class="loading-dots"></span></div>';
+  document.getElementById('loading').style.display = 'block';
+}
+
+function renderStudySection(d) {
   const vocab = document.getElementById('out-vocab');
   vocab.innerHTML = (d.vocabulary || []).map(v => `
     <div class="vocab-item">
@@ -955,10 +970,6 @@ function renderMagazine(d) {
       <div class="quiz-answer" id="quiz-ans-${i}"></div>
     </div>`;
   }).join('');
-
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('magazine').style.display = 'block';
-  document.getElementById('magazine').scrollIntoView({ behavior: 'smooth' });
 }
 
 function flipChip(i, vi) {
